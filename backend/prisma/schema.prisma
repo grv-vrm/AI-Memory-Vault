@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id         String    @id @default(cuid())
+  name       String?
+  email      String?   @unique
+  image      String?
+  password   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  accounts   Account[]
+  files      File[]
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken       String?
+  refreshToken      String?
+  scope             String?
+  tokenType         String?
+  expiresAt         Int?
+
+  @@unique([provider, providerAccountId])
+}
+
+model File {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key         String   @unique  // S3 object key
+  filename    String
+  mimeType    String
+  size        Int
+  status      String   @default("uploaded") // uploaded | processing | done | failed
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  documents   Document[]
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  fileId    String
+  file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  chunk     Int
+  text      String   @db.Text
+  pineconeId String?  // optional id in vector store
+  createdAt DateTime @default(now())
+}
