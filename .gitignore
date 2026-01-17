@@ -16,3 +16,5 @@ coverage
 .env.test.local
 .env.production.local
 .vite
+
+venv

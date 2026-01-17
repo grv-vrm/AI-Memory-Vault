@@ -36,6 +36,7 @@
     "express": "^5.1.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
+    "langchain": "^1.1.1",
     "multer": "^2.0.2",
     "node-fetch": "^3.3.2",
     "passport": "^0.7.0",
