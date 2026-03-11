@@ -25,7 +25,7 @@ Install these first:
 ## 2. Clone and Install
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/grv-vrm/AI-Memory-Vault.git
 cd AI-memory-vault-main
 
 cd backend
