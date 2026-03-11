@@ -14,6 +14,7 @@ export interface FileRecord {
   mimeType: string
   size: number
   status: "uploaded" | "processing" | "done" | "failed"
+  error?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -107,4 +108,17 @@ export async function uploadFile(
 export async function getFileDownloadUrl(fileId: string): Promise<string> {
   const res = await apiFetch(`/user/files/${fileId}/download`, { method: "GET" })
   return res.url
+}
+
+export async function deleteUserFiles(fileIds: string[]): Promise<{ ok: boolean; deletedCount: number }> {
+  return await apiFetch("/user/files", {
+    method: "DELETE",
+    body: JSON.stringify({ fileIds }),
+  })
+}
+
+export async function reprocessFile(fileId: string): Promise<{ ok: boolean; file: FileRecord }> {
+  return await apiFetch(`/user/files/${fileId}/reprocess`, {
+    method: "POST",
+  })
 }

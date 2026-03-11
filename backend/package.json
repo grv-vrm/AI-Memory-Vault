@@ -4,8 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev:api": "bun run server.ts",
-    "dev:worker": "bun run workers/ingest.worker.ts"
+    "dev:api": "bun --watch run server.ts",
+    "dev:worker": "bun --watch run workers/ingest.worker.ts",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -38,6 +39,7 @@
     "jsonwebtoken": "^9.0.2",
     "langchain": "^1.1.1",
     "multer": "^2.0.2",
+    "neo4j-driver": "^6.0.1",
     "node-fetch": "^3.3.2",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

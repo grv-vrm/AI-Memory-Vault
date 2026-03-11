@@ -1,8 +1,15 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import LoginPage from "./pages/LoginPage"
-import ChatPage from "./pages/ChatPage"
 import AuthSuccess from "./pages/AuthSuccess"
+import GraphPage from "./pages/GraphPage"
+import InsightsPage from "./pages/InsightsPage"
+import SearchPage from "./pages/SearchPage"
+import DashboardPage from "./pages/DashboardPage"
+import UploadPage from "./pages/UploadPage"
+import DocumentsPage from "./pages/DocumentsPage"
+import SettingsPage from "./pages/SettingsPage"
+import VaultShell from "./components/layout/VaultShell"
 import { AuthProvider, useAuth } from "./lib/AuthContext"
 import { ThemeProvider } from "./lib/ThemeContext"
 
@@ -19,13 +26,22 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/chat" replace />} />
-      <Route path="/chat" element={user ? <ChatPage /> : <Navigate to="/login" replace />} />
+      <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
+      <Route element={user ? <VaultShell /> : <Navigate to="/login" replace />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/upload" element={<UploadPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/graph" element={<GraphPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+      <Route path="/chat" element={<Navigate to="/search" replace />} />
       <Route path="/auth/success" element={<AuthSuccess />} />
       <Route
         path="/"
         element={
-          user ? <Navigate to="/chat" replace /> : <Navigate to="/login" replace />
+          user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

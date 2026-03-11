@@ -1,37 +1,43 @@
 import { useEffect, useState } from "react"
-import { getUserFiles, getFileDownloadUrl, type FileRecord } from "@/lib/upload"
-import { FileText, Image, Video, FileIcon, Download } from "lucide-react"
+import { getUserFiles, getFileDownloadUrl, deleteUserFiles, reprocessFile, type FileRecord } from "@/lib/upload"
+import { FileText, Image, Video, FileIcon, Download, Trash2, CheckSquare, Square, RotateCcw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 
 export default function LibraryView() {
   const [files, setFiles] = useState<FileRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [fileUrls, setFileUrls] = useState<Record<string, string>>({})
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [deleting, setDeleting] = useState(false)
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function loadFiles() {
-      try {
-        const data = await getUserFiles()
-        setFiles(data)
-        
-        // Load signed URLs for image/video previews
-        const urls: Record<string, string> = {}
-        for (const file of data) {
-          if (file.mimeType.startsWith("image/") || file.mimeType.startsWith("video/")) {
-            try {
-              urls[file.id] = await getFileDownloadUrl(file.id)
-            } catch (err) {
-              console.error(`Failed to get URL for file ${file.id}:`, err)
-            }
+  async function loadFiles() {
+    try {
+      const data = await getUserFiles()
+      setFiles(data)
+      
+      // Load signed URLs for image/video previews
+      const urls: Record<string, string> = {}
+      for (const file of data) {
+        if (file.mimeType.startsWith("image/") || file.mimeType.startsWith("video/")) {
+          try {
+            urls[file.id] = await getFileDownloadUrl(file.id)
+          } catch (err) {
+            console.error(`Failed to get URL for file ${file.id}:`, err)
           }
         }
-        setFileUrls(urls)
-      } catch (err) {
-        console.error("Failed to load files:", err)
-      } finally {
-        setLoading(false)
       }
+      setFileUrls(urls)
+    } catch (err) {
+      console.error("Failed to load files:", err)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadFiles()
   }, [])
 
@@ -81,12 +87,59 @@ export default function LibraryView() {
   }
 
   const handleFileClick = async (file: FileRecord) => {
+    if (selectionMode) {
+      toggleSelect(file.id)
+      return
+    }
+
     try {
       const url = await getFileDownloadUrl(file.id)
       window.open(url, "_blank")
     } catch (err) {
       console.error("Failed to get download URL:", err)
       alert("Failed to open file. Please try again.")
+    }
+  }
+
+  function toggleSelect(fileId: string) {
+    setSelectedIds((prev) =>
+      prev.includes(fileId) ? prev.filter((id) => id !== fileId) : [...prev, fileId]
+    )
+  }
+
+  async function handleDeleteSelected() {
+    if (selectedIds.length === 0 || deleting) return
+
+    const confirmDelete = window.confirm(
+      `Delete ${selectedIds.length} selected file(s)? This action cannot be undone.`
+    )
+    if (!confirmDelete) return
+
+    setDeleting(true)
+    try {
+      await deleteUserFiles(selectedIds)
+      setSelectedIds([])
+      setSelectionMode(false)
+      await loadFiles()
+    } catch (err) {
+      console.error("Failed to delete files:", err)
+      alert("Failed to delete selected files. Please try again.")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  async function handleReprocess(fileId: string) {
+    if (reprocessingId) return
+    setReprocessingId(fileId)
+    try {
+      await reprocessFile(fileId)
+      await loadFiles()
+    } catch (err) {
+      console.error("Failed to reprocess file:", err)
+      alert("Failed to reprocess file. Please try again.")
+    } finally {
+      setReprocessingId(null)
     }
   }
 
@@ -109,18 +162,61 @@ export default function LibraryView() {
 
   return (
     <div className="h-full overflow-y-auto p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="text-sm text-muted-foreground">
+          {selectionMode ? `${selectedIds.length} selected` : `${files.length} files`}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSelectionMode((prev) => !prev)
+              setSelectedIds([])
+            }}
+          >
+            {selectionMode ? "Cancel" : "Select"}
+          </Button>
+          {selectionMode && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0 || deleting}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {files.map((file) => {
           const isImage = file.mimeType.startsWith("image/")
           const isVideo = file.mimeType.startsWith("video/")
           const storageUrl = getStorageUrl(file)
+          const isSelected = selectedIds.includes(file.id)
 
           return (
             <div
               key={file.id}
-              className="group relative border rounded-lg overflow-hidden bg-card hover:shadow-lg transition-all cursor-pointer"
+              className={`group relative border rounded-lg overflow-hidden bg-card hover:shadow-lg transition-all cursor-pointer ${isSelected ? "ring-2 ring-primary" : ""}`}
               onClick={() => handleFileClick(file)}
             >
+              {selectionMode && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleSelect(file.id)
+                  }}
+                  className="absolute top-2 right-2 z-10 rounded-md bg-black/60 p-1 text-white"
+                >
+                  {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                </button>
+              )}
+
               {/* Preview */}
               <div className="aspect-video bg-muted flex items-center justify-center relative overflow-hidden">
                 {isImage ? (
@@ -143,7 +239,7 @@ export default function LibraryView() {
                 )}
                 
                 {/* Overlay on hover */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className={`absolute inset-0 bg-black/60 transition-opacity flex items-center justify-center ${selectionMode ? "opacity-0" : "opacity-0 group-hover:opacity-100"}`}>
                   <Download className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -163,6 +259,30 @@ export default function LibraryView() {
                   <span>{formatFileSize(file.size)}</span>
                   <span>{formatDate(file.createdAt)}</span>
                 </div>
+
+                {file.status === "failed" && (
+                  <div className="space-y-2">
+                    {file.error && (
+                      <p className="text-xs text-red-600 dark:text-red-400 line-clamp-3">
+                        {file.error}
+                      </p>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReprocess(file.id)
+                      }}
+                      disabled={reprocessingId === file.id}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-1" />
+                      {reprocessingId === file.id ? "Reprocessing..." : "Reprocess"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )

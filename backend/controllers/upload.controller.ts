@@ -1,15 +1,9 @@
 import type { Request, Response } from "express";
 import { supabase as supabaseAdmin } from "../config/supabase.js";   // make sure this name matches your export
 import { prisma } from "../prisma/client.js";
-import { Queue } from "bullmq";
-import IORedis from "ioredis";
+import { enqueueFileProcessing } from "../queues/fileQueue";
 
 const BUCKET = process.env.S3_BUCKET as string;
-const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-
-// single shared connection + queue instance
-const connection = new IORedis(REDIS_URL);
-const fileQueue = new Queue("process-file", { connection });
 
 export async function presign(req: Request, res: Response) {
   try {
@@ -73,10 +67,7 @@ export async function complete(req: Request, res: Response) {
     });
 
     // enqueue ingestion worker job
-    await fileQueue.add("process-file", {
-      fileId: file.id,
-      storagePath: file.key,
-    });
+    await enqueueFileProcessing(file.id, file.key);
 
     res.json({ ok: true, file });
   } catch (err) {

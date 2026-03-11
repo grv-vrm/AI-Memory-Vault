@@ -5,35 +5,46 @@ import { Button } from "@/components/ui/button"
 import { 
   PanelLeft, 
   SquarePen, 
-  Sun, 
-  Moon, 
+  Palette, 
   Paperclip,
   Send,
+  ScrollText,
   ChevronDown,
   LogOut,
   Library,
-  Upload
+  Upload,
+  Network,
+  BarChart3
 } from "lucide-react"
-import ChatWindow, { type Message } from "@/components/Chat/ChatWindow"
+import ChatWindow, {
+  type EvidenceChunk,
+  type GraphConnection,
+  type Message,
+} from "@/components/Chat/ChatWindow"
 import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter } from "@/components/ui/sidebar"
 import LibraryView from "@/components/Chat/LibraryView"
 import { useAuth } from "@/lib/AuthContext"
 import { useTheme } from "@/lib/ThemeContext"
 import { Input } from "@/components/ui/input"
 import { uploadFile } from "@/lib/upload"
+import { askVault, summarizeVault } from "@/lib/query"
 
 type View = "chat" | "library"
 
 export default function ChatPage() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
+  const { toggleTheme } = useTheme()
   const [messages, setMessages] = useState<Message[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [inputValue, setInputValue] = useState("")
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [view, setView] = useState<View>("chat")
   const [isUploading, setIsUploading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [summaryFromDate, setSummaryFromDate] = useState("")
+  const [summaryToDate, setSummaryToDate] = useState("")
+  const [showSummaryFilters, setShowSummaryFilters] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleLogout() {
@@ -59,29 +70,138 @@ export default function ChatPage() {
     }
   }
 
-  function handleSendMessage(e: React.FormEvent) {
+  async function handleSendMessage(e: React.FormEvent) {
     e.preventDefault()
-    if (!inputValue.trim()) return
+    const query = inputValue.trim()
+    if (!query) return
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      text: inputValue,
+      text: query,
       sender: "user",
       timestamp: new Date(),
     }
     setMessages((prev) => [...prev, newMessage])
     setInputValue("")
+    setIsSearching(true)
 
-    // Simulate assistant response
-    setTimeout(() => {
+    try {
+      const response = await askVault(query, 5)
+      const assistantText = response.answer
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I received your message. Once the backend chat endpoint is implemented, I'll be able to provide intelligent responses based on your uploaded documents.",
+        text: assistantText,
+        sender: "assistant",
+        timestamp: new Date(),
+        citations: response.citations,
+        confidence: response.confidence,
+        usedChunks: response.usedChunks.map((chunk) => ({
+          citation: chunk.citation,
+          text: chunk.text,
+          score: chunk.score,
+          chunk: chunk.chunk,
+          fileId: chunk.file.id,
+        })) as EvidenceChunk[],
+        connections: response.connections.map((c) => ({
+          source: c.source,
+          target: c.target,
+          weight: c.weight,
+          relation: c.relation,
+          evidence: c.evidence ?? [],
+        })) as GraphConnection[],
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (error: any) {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `Search failed: ${error?.message || "Unknown error"}`,
         sender: "assistant",
         timestamp: new Date(),
       }
       setMessages((prev) => [...prev, assistantMessage])
-    }, 1000)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  async function handleSummarize() {
+    const query = inputValue.trim() || "Summarize my recent memory"
+    const fromDate = summaryFromDate.trim() || undefined
+    const toDate = summaryToDate.trim() || undefined
+
+    const userTextParts = [query]
+    if (fromDate || toDate) {
+      userTextParts.push(`Range: ${fromDate ?? "start"} to ${toDate ?? "today"}`)
+    }
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: userTextParts.join("\n"),
+      sender: "user",
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, newMessage])
+    setInputValue("")
+    setIsSearching(true)
+
+    try {
+      let response
+      try {
+        response = await summarizeVault({
+          query,
+          topK: 12,
+          fromDate,
+          toDate,
+        })
+      } catch (summaryError: any) {
+        const message = String(summaryError?.message ?? "")
+        // Backward compatibility when backend process is older than summarize route.
+        if (message.includes("Cannot POST /query/summarize")) {
+          const askFallback = await askVault(`Summarize this from memory vault: ${query}`, 8)
+          response = {
+            ok: true,
+            query,
+            summary: askFallback.answer,
+            citations: askFallback.citations,
+            usedChunks: askFallback.usedChunks,
+            filters: { fromDate: fromDate ?? null, toDate: toDate ?? null },
+            stats: {
+              chunksUsed: askFallback.usedChunks.length,
+              filesUsed: new Set(askFallback.usedChunks.map((chunk) => chunk.file.id)).size,
+            },
+          }
+        } else {
+          throw summaryError
+        }
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: response.summary,
+        sender: "assistant",
+        timestamp: new Date(),
+        citations: response.citations,
+        usedChunks: response.usedChunks.map((chunk) => ({
+          citation: chunk.citation,
+          text: chunk.text,
+          score: chunk.score,
+          chunk: chunk.chunk,
+          fileId: chunk.file.id,
+        })) as EvidenceChunk[],
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (error: any) {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `Summary failed: ${error?.message || "Unknown error"}`,
+        sender: "assistant",
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, assistantMessage])
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   if (!user) return null
@@ -119,6 +239,24 @@ export default function ChatPage() {
             >
               <Library className="w-4 h-4" />
               <span>Library</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={() => navigate("/graph")}
+            >
+              <Network className="w-4 h-4" />
+              <span>Graph</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={() => navigate("/insights")}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Insights</span>
             </Button>
             <input
               ref={fileInputRef}
@@ -201,7 +339,7 @@ export default function ChatPage() {
             onClick={toggleTheme}
             className="h-8 w-8"
           >
-            {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            <Palette className="w-5 h-5" />
           </Button>
         </header>
 
@@ -215,6 +353,50 @@ export default function ChatPage() {
             {/* Input Area */}
             <div className="p-4">
               <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSummaryFilters((prev) => !prev)}
+                      disabled={isUploading || isSearching}
+                    >
+                      <ScrollText className="w-4 h-4" />
+                      Summary Filters
+                    </Button>
+                  </div>
+                  {showSummaryFilters && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSummaryFromDate("")
+                        setSummaryToDate("")
+                      }}
+                      disabled={isUploading || isSearching}
+                    >
+                      Clear dates
+                    </Button>
+                  )}
+                </div>
+                {showSummaryFilters && (
+                  <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <Input
+                      type="date"
+                      value={summaryFromDate}
+                      onChange={(e) => setSummaryFromDate(e.target.value)}
+                      disabled={isUploading || isSearching}
+                    />
+                    <Input
+                      type="date"
+                      value={summaryToDate}
+                      onChange={(e) => setSummaryToDate(e.target.value)}
+                      disabled={isUploading || isSearching}
+                    />
+                  </div>
+                )}
                 <div className="relative flex items-center gap-2 rounded-3xl border border-border bg-card shadow-sm px-4 py-3">
                   <input
                     ref={fileInputRef}
@@ -239,13 +421,23 @@ export default function ChatPage() {
                     onChange={(e) => setInputValue(e.target.value)}
                     placeholder={isUploading ? "Uploading..." : "Message AI Memory Vault"}
                     className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
-                    disabled={isUploading}
+                    disabled={isUploading || isSearching}
                   />
                   
                   <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isUploading || isSearching}
+                    onClick={handleSummarize}
+                  >
+                    Summarize
+                  </Button>
+
+                  <Button
                     type="submit"
                     size="icon"
-                    disabled={!inputValue.trim() || isUploading}
+                    disabled={!inputValue.trim() || isUploading || isSearching}
                     className="h-8 w-8 rounded-full"
                   >
                     <Send className="w-4 h-4" />

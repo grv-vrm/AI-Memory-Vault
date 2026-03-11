@@ -31,12 +31,12 @@ export default function LoginPage() {
           setIsLoading(false)
           return
         }
-        await register(name, email, password)
+        await register(email, password, name)
       } else {
         await login(email, password)
       }
       await refreshUser()
-      navigate("/chat")
+      navigate("/dashboard")
     } catch (err: any) {
       setError(err.message || "Authentication failed")
     } finally {
@@ -60,7 +60,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background/95 backdrop-blur-sm">
       <div className="w-full max-w-md bg-card rounded-2xl shadow-2xl p-8 relative">
         <button
-          onClick={() => navigate("/chat")}
+          onClick={() => navigate("/")}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
         >
           <X className="w-5 h-5" />
