@@ -9,7 +9,7 @@ export default function AuthSuccess() {
   useEffect(() => {
     async function handleOAuthCallback() {
       await refreshUser()
-      navigate("/dashboard")
+      navigate("/upload")
     }
     void handleOAuthCallback()
   }, [navigate, refreshUser])

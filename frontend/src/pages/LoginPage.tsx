@@ -36,7 +36,7 @@ export default function LoginPage() {
         await login(email, password)
       }
       await refreshUser()
-      navigate("/dashboard")
+      navigate("/upload")
     } catch (err: any) {
       setError(err.message || "Authentication failed")
     } finally {

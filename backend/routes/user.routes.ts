@@ -15,6 +15,35 @@ router.get("/me", requireAuth, async (req, res) => {
   res.json(user);
 });
 
+router.patch("/me", requireAuth, async (req, res) => {
+  const uid = (req as any).userId as string;
+  const rawName = typeof req.body?.name === "string" ? req.body.name : "";
+  const name = rawName.trim();
+
+  if (!name) {
+    return res.status(400).json({ error: "name is required" });
+  }
+
+  if (name.length > 80) {
+    return res.status(400).json({ error: "name must be at most 80 characters" });
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: uid },
+    data: { name },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  res.json({ ok: true, user: updated });
+});
+
 router.get("/files", requireAuth, async (req, res) => {
   const uid = (req as any).userId;
   const files = await prisma.file.findMany({ 

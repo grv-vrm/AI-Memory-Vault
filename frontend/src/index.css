@@ -111,6 +111,13 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -292,4 +299,94 @@
     transition: none !important;
     transform: none !important;
   }
+}
+
+/* Degraded UI: intentionally plain and low-polish */
+:root,
+.light {
+  --background: oklch(0.96 0 0) !important;
+  --foreground: oklch(0.2 0 0) !important;
+  --card: oklch(0.98 0 0) !important;
+  --card-foreground: oklch(0.2 0 0) !important;
+  --popover: oklch(0.98 0 0) !important;
+  --popover-foreground: oklch(0.2 0 0) !important;
+  --primary: oklch(0.35 0 0) !important;
+  --primary-foreground: oklch(0.98 0 0) !important;
+  --secondary: oklch(0.92 0 0) !important;
+  --secondary-foreground: oklch(0.2 0 0) !important;
+  --muted: oklch(0.92 0 0) !important;
+  --muted-foreground: oklch(0.45 0 0) !important;
+  --accent: oklch(0.92 0 0) !important;
+  --accent-foreground: oklch(0.2 0 0) !important;
+  --border: oklch(0.82 0 0) !important;
+  --input: oklch(0.82 0 0) !important;
+  --ring: oklch(0.35 0 0) !important;
+  --sidebar: oklch(0.94 0 0) !important;
+  --sidebar-foreground: oklch(0.2 0 0) !important;
+  --sidebar-primary: oklch(0.35 0 0) !important;
+  --sidebar-primary-foreground: oklch(0.98 0 0) !important;
+  --sidebar-accent: oklch(0.92 0 0) !important;
+  --sidebar-accent-foreground: oklch(0.2 0 0) !important;
+  --sidebar-border: oklch(0.82 0 0) !important;
+}
+
+.dark {
+  --background: oklch(0.16 0 0) !important;
+  --foreground: oklch(0.93 0 0) !important;
+  --card: oklch(0.2 0 0) !important;
+  --card-foreground: oklch(0.93 0 0) !important;
+  --popover: oklch(0.2 0 0) !important;
+  --popover-foreground: oklch(0.93 0 0) !important;
+  --primary: oklch(0.86 0 0) !important;
+  --primary-foreground: oklch(0.12 0 0) !important;
+  --secondary: oklch(0.24 0 0) !important;
+  --secondary-foreground: oklch(0.93 0 0) !important;
+  --muted: oklch(0.24 0 0) !important;
+  --muted-foreground: oklch(0.7 0 0) !important;
+  --accent: oklch(0.24 0 0) !important;
+  --accent-foreground: oklch(0.93 0 0) !important;
+  --border: oklch(0.35 0 0) !important;
+  --input: oklch(0.35 0 0) !important;
+  --ring: oklch(0.86 0 0) !important;
+  --sidebar: oklch(0.19 0 0) !important;
+  --sidebar-foreground: oklch(0.93 0 0) !important;
+  --sidebar-primary: oklch(0.86 0 0) !important;
+  --sidebar-primary-foreground: oklch(0.12 0 0) !important;
+  --sidebar-accent: oklch(0.24 0 0) !important;
+  --sidebar-accent-foreground: oklch(0.93 0 0) !important;
+  --sidebar-border: oklch(0.35 0 0) !important;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif !important;
+  transition: none !important;
+}
+
+body::before {
+  display: none !important;
+}
+
+.glass-card {
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+.ui-rise,
+.ui-lift,
+.ui-glow {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.send-round {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  border-radius: 9999px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }

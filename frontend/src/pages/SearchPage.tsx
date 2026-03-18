@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Paperclip, ScrollText, Send } from "lucide-react"
+import { Paperclip, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ChatWindow, { type EvidenceChunk, type GraphConnection, type Message } from "@/components/Chat/ChatWindow"
@@ -12,9 +12,6 @@ export default function SearchPage() {
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
-  const [showSummaryFilters, setShowSummaryFilters] = useState(false)
-  const [summaryFromDate, setSummaryFromDate] = useState("")
-  const [summaryToDate, setSummaryToDate] = useState("")
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [retentionHours, setRetentionHours] = useState<24 | 48>(48)
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
@@ -124,12 +121,8 @@ export default function SearchPage() {
 
   async function handleSummarize() {
     const query = inputValue.trim() || "Summarize my recent memory"
-    const fromDate = summaryFromDate.trim() || undefined
-    const toDate = summaryToDate.trim() || undefined
 
-    pushUserMessage(
-      fromDate || toDate ? `${query}\nRange: ${fromDate ?? "start"} to ${toDate ?? "today"}` : query
-    )
+    pushUserMessage(query)
     setInputValue("")
     setIsSearching(true)
 
@@ -137,8 +130,6 @@ export default function SearchPage() {
       const response = await summarizeVault({
         query,
         topK: 12,
-        fromDate,
-        toDate,
         conversationId,
         retentionHours,
       })
@@ -223,7 +214,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <header className="mb-3 space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">Memory Search</h1>
         <p className="text-sm text-muted-foreground">
@@ -236,26 +227,18 @@ export default function SearchPage() {
 
       <div className="glass-card ui-rise flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70">
         <ChatWindow messages={messages} />
-        <div className="border-t border-border/70 p-4">
+        <div className="border-t border-border/70 p-2">
           <form onSubmit={handleSendMessage} className="mx-auto max-w-4xl">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="ui-lift relative flex items-center gap-2 rounded-2xl border border-border bg-card/70 px-3 py-2">
+              <div className="flex items-center rounded-md border border-border bg-background p-1">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant={retentionHours === 24 ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setShowSummaryFilters((v) => !v)}
-                  disabled={isUploading || isSearching || isLoadingHistory}
-                >
-                  <ScrollText className="mr-1 h-4 w-4" />
-                  Summary Filters
-                </Button>
-                <select
-                  className="h-8 rounded-md border border-border bg-background px-2 text-xs"
-                  value={retentionHours}
+                  className="h-7 px-2 text-xs"
                   disabled={!conversationId || isUploading || isSearching || isLoadingHistory}
-                  onChange={async (e) => {
-                    const next = Number(e.target.value) === 24 ? 24 : 48
+                  onClick={async () => {
+                    const next = 24
                     setRetentionHours(next)
                     if (!conversationId) return
                     try {
@@ -265,43 +248,28 @@ export default function SearchPage() {
                     }
                   }}
                 >
-                  <option value={24}>Keep 1 day</option>
-                  <option value={48}>Keep 2 days</option>
-                </select>
-              </div>
-              {showSummaryFilters && (
+                  1 day
+                </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant={retentionHours === 48 ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => {
-                    setSummaryFromDate("")
-                    setSummaryToDate("")
+                  className="h-7 px-2 text-xs"
+                  disabled={!conversationId || isUploading || isSearching || isLoadingHistory}
+                  onClick={async () => {
+                    const next = 48
+                    setRetentionHours(next)
+                    if (!conversationId) return
+                    try {
+                      await setChatRetention(conversationId, next)
+                    } catch (error) {
+                      console.error("Failed to update chat retention:", error)
+                    }
                   }}
                 >
-                  Clear
+                  2 days
                 </Button>
-              )}
-            </div>
-
-            {showSummaryFilters && (
-              <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Input
-                  type="date"
-                  value={summaryFromDate}
-                  onChange={(e) => setSummaryFromDate(e.target.value)}
-                  disabled={isUploading || isSearching}
-                />
-                <Input
-                  type="date"
-                  value={summaryToDate}
-                  onChange={(e) => setSummaryToDate(e.target.value)}
-                  disabled={isUploading || isSearching}
-                />
               </div>
-            )}
-
-            <div className="ui-lift relative flex items-center gap-2 rounded-2xl border border-border bg-card/70 px-3 py-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -344,7 +312,8 @@ export default function SearchPage() {
                 type="submit"
                 size="icon"
                 disabled={!inputValue.trim() || isUploading || isSearching || isLoadingHistory}
-                className="rounded-full"
+                className="send-round !h-10 !w-10 !rounded-full !p-0"
+                style={{ borderRadius: "9999px", width: "40px", height: "40px" }}
               >
                 <Send className="h-4 w-4" />
               </Button>

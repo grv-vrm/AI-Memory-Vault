@@ -41,3 +41,13 @@ export async function register(email: string, password: string, name: string): P
 export async function logout(): Promise<void> {
   await apiFetch("/auth/logout", { method: "POST" })
 }
+
+export async function updateProfileName(name: string): Promise<User> {
+  const res = await apiFetch("/user/me", {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  })
+  if (res?.user && res.user.id) return res.user as User
+  if (res?.id) return res as User
+  throw new Error("Failed to update profile")
+}

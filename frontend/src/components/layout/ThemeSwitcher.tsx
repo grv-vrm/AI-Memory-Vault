@@ -2,11 +2,8 @@ import { useTheme, type VaultTheme } from "@/lib/ThemeContext"
 import { Button } from "@/components/ui/button"
 
 const THEMES: Array<{ id: VaultTheme; label: string }> = [
-  { id: "light-productivity", label: "Light" },
-  { id: "dark-knowledge", label: "Dark" },
-  { id: "glassmorphism", label: "Glass" },
-  { id: "gradient-ai", label: "Gradient" },
-  { id: "minimal-focus", label: "Focus" },
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
 ]
 
 export default function ThemeSwitcher() {
