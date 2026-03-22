@@ -56,6 +56,14 @@ Fill `backend/.env` with your real values:
 - `PINECONE_API_KEY`, `PINECONE_ENVIRONMENT`, `PINECONE_INDEX`
 - `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`
 
+Optional ingestion tuning (recommended for OCR/PDF):
+- `OCR_ENABLED` (default `true`)
+- `OCR_LANG` (default `eng`)
+- `PDF_OCR_ENABLED` (default `true`)
+- `PDF_OCR_MAX_PAGES` (default `30`)
+- `PDF_OCR_SCALE` (default `2`)
+- `PDF_MIN_TEXT_CHARS` (default `1200`)
+
 Recommended LLM fallback list:
 ```env
 HF_LLM_MODELS="mistralai/Mistral-7B-Instruct-v0.3,Qwen/Qwen2.5-7B-Instruct,google/flan-t5-large"
@@ -139,7 +147,7 @@ bun run dev
 
 1. Open `http://localhost:5173`
 2. Login/register
-3. Upload a text/PDF file
+3. Upload a text/PDF/DOCX/image file
 4. Wait for worker logs to show processing complete
 5. Ask a question on Memory Search page
 
@@ -172,6 +180,13 @@ bunx prisma studio
 ## 9. Notes
 
 - Chat memory is persisted with retention options of `24h` or `48h` (no forever mode).
+- Ingestion supports:
+  - text-like files (`txt`, `md`, `csv`, `json`, etc.)
+  - `docx` (via `mammoth`)
+  - `pdf` (PDF text extract + scanned-PDF OCR fallback)
+  - images (OCR with Tesseract)
+- If Redis is not running, uploads will remain in `uploaded/not done` and worker queue jobs will fail with `ECONNREFUSED 127.0.0.1:6379`.
+- Neo4j connection errors during worker run are non-blocking for ingestion; files can still complete. Set `GRAPH_ENABLED=false` if you want to skip graph rebuild while troubleshooting.
 - If backend fails after schema changes, run Prisma commands again:
   - `bunx prisma generate`
   - `bunx prisma migrate deploy`
