@@ -57,7 +57,8 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="space-y-6 pb-4">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">Upload Memory</h1>
         <p className="text-sm text-muted-foreground">
@@ -68,7 +69,7 @@ export default function UploadPage() {
       <Card className="glass-card ui-rise overflow-hidden">
         <CardHeader>
           <CardTitle>Drop Zone</CardTitle>
-          <CardDescription>Supported: PDF, DOCX, TXT, audio notes, and plain text.</CardDescription>
+          <CardDescription>Supported: PDF, DOCX, TXT, images, audio notes, and plain text.</CardDescription>
         </CardHeader>
         <CardContent>
           <label
@@ -92,7 +93,7 @@ export default function UploadPage() {
               type="file"
               className="hidden"
               multiple
-              accept=".pdf,.doc,.docx,.txt,.md,.csv,.json,audio/*"
+              accept=".pdf,.doc,.docx,.txt,.md,.csv,.json,image/*,audio/*"
               onChange={(e) => {
                 if (e.target.files?.length) {
                   void uploadSelected(e.target.files)
@@ -183,6 +184,7 @@ export default function UploadPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   )

@@ -640,7 +640,14 @@ export async function queryInsights(req: Request, res: Response) {
           _all: true,
         },
       }),
-      queryGraphInsights({ userId, limit: 10 }),
+      queryGraphInsights({ userId, limit: 10 }).catch((error) => {
+        console.error("[queryInsights] graph insights warning:", error);
+        return {
+          topEntities: [] as Array<{ name: string; type: string; mentions: number }>,
+          relationTypes: [] as Array<{ relation: string; count: number }>,
+          strongestEdges: [] as Array<{ source: string; target: string; relation: string; weight: number }>,
+        };
+      }),
     ]);
     const trend = buildDailyTrend(filesForTrend, since, safeDays);
 

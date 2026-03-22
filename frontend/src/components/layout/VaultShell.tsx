@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom"
-import { BrainCircuit, FileUp, FolderKanban, LogOut, MoonStar, Sun, X } from "lucide-react"
+import { BarChart3, BrainCircuit, FileUp, FolderKanban, LayoutDashboard, LogOut, MoonStar, Sun, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input"
 import { updateProfileName } from "@/lib/auth"
 
 const NAV_ITEMS = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/upload", label: "Upload", icon: FileUp },
   { to: "/search", label: "Memory Search", icon: BrainCircuit },
   { to: "/documents", label: "Documents", icon: FolderKanban },
+  { to: "/insights", label: "Insights", icon: BarChart3 },
 ]
 
 export default function VaultShell() {

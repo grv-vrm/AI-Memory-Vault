@@ -30,7 +30,8 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="space-y-6 pb-4">
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Vault Insights</h1>
@@ -213,6 +214,7 @@ export default function InsightsPage() {
             </div>
           </div>
         )}
+      </div>
     </div>
   )
 }
@@ -302,7 +304,7 @@ function BreakdownBars(props: {
       {props.items.map((item, idx) => (
         <div key={`${item.label}-${idx}`} className="space-y-1">
           <div className="flex items-center justify-between text-xs">
-            <span className="truncate pr-3">{item.label}</span>
+            <span className="truncate pr-3">{formatStatusLabel(item.label)}</span>
             <span className="text-muted-foreground">{item.value}</span>
           </div>
           <div className="h-2 rounded-full bg-muted">
@@ -315,6 +317,10 @@ function BreakdownBars(props: {
       ))}
     </div>
   )
+}
+
+function formatStatusLabel(label: string) {
+  return label === "uploaded" ? "not done" : label
 }
 
 function formatMimeLabel(mimeType: string) {

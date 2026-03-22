@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { BrainCircuit, FileUp, FolderKanban, Network } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { getUserFiles, type FileRecord } from "@/lib/upload"
+import { getUserFiles } from "@/lib/upload"
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -34,10 +34,9 @@ export default function DashboardPage() {
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 6)
 
-  const conceptHints = buildConceptHints(files)
-
   return (
-    <div className="space-y-6">
+    <div className="h-full overflow-y-auto pr-1">
+      <div className="space-y-6 pb-4">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
@@ -52,7 +51,7 @@ export default function DashboardPage() {
         <MetricCard title="Needs Attention" value={stats.failed} subtitle="Failed ingestion" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4">
         <Card className="glass-card ui-rise">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -85,32 +84,6 @@ export default function DashboardPage() {
             />
           </CardContent>
         </Card>
-
-        <Card className="glass-card ui-rise">
-          <CardHeader>
-            <CardTitle>Trending Concepts</CardTitle>
-            <CardDescription>Lightweight signals from filenames and tags.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {conceptHints.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Upload documents to start seeing knowledge patterns.
-              </p>
-            ) : (
-              conceptHints.map((hint) => (
-                <div key={hint.label} className="rounded-lg border border-border/70 p-3">
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="font-medium">{hint.label}</span>
-                    <span className="text-xs text-muted-foreground">{hint.count}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted">
-                    <div className="h-2 rounded-full bg-primary" style={{ width: `${hint.width}%` }} />
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="glass-card ui-rise">
@@ -139,6 +112,7 @@ export default function DashboardPage() {
           </Button>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }
@@ -174,28 +148,4 @@ function ActionCard(props: {
       <p className="mt-1 text-xs text-muted-foreground">{props.description}</p>
     </button>
   )
-}
-
-function buildConceptHints(files: FileRecord[]) {
-  const counts = new Map<string, number>()
-  for (const file of files) {
-    const terms = file.filename
-      .toLowerCase()
-      .replace(/\.[a-z0-9]+$/, "")
-      .split(/[^a-z0-9]+/)
-      .filter((token) => token.length >= 4)
-    for (const token of terms) {
-      counts.set(token, (counts.get(token) ?? 0) + 1)
-    }
-  }
-
-  const sorted = Array.from(counts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-  const max = Math.max(1, ...sorted.map(([, count]) => count))
-  return sorted.map(([label, count]) => ({
-    label,
-    count,
-    width: Math.round((count / max) * 100),
-  }))
 }

@@ -97,6 +97,37 @@ router.post("/files/:id/reprocess", requireAuth, async (req, res) => {
   res.json({ ok: true, file: updated });
 });
 
+router.patch("/files/:id", requireAuth, async (req, res) => {
+  const uid = (req as any).userId as string;
+  const fileId = req.params.id;
+  const rawFilename = typeof req.body?.filename === "string" ? req.body.filename : "";
+  const filename = rawFilename.trim();
+
+  if (!filename) {
+    return res.status(400).json({ error: "filename is required" });
+  }
+
+  if (filename.length > 180) {
+    return res.status(400).json({ error: "filename must be at most 180 characters" });
+  }
+
+  const existing = await prisma.file.findFirst({
+    where: { id: fileId, userId: uid },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: "File not found" });
+  }
+
+  const updated = await prisma.file.update({
+    where: { id: fileId },
+    data: { filename },
+  });
+
+  res.json({ ok: true, file: updated });
+});
+
 router.delete("/files", requireAuth, async (req, res) => {
   const uid = (req as any).userId as string;
   const fileIds = Array.isArray(req.body?.fileIds)

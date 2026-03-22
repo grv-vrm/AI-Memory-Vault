@@ -122,3 +122,13 @@ export async function reprocessFile(fileId: string): Promise<{ ok: boolean; file
     method: "POST",
   })
 }
+
+export async function renameUserFile(
+  fileId: string,
+  filename: string
+): Promise<{ ok: boolean; file: FileRecord }> {
+  return await apiFetch(`/user/files/${fileId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ filename }),
+  })
+}

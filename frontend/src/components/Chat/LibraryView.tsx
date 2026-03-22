@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { getUserFiles, getFileDownloadUrl, deleteUserFiles, reprocessFile, type FileRecord } from "@/lib/upload"
-import { FileText, Image, Video, FileIcon, Download, Trash2, CheckSquare, Square, RotateCcw } from "lucide-react"
+import { getUserFiles, getFileDownloadUrl, deleteUserFiles, reprocessFile, renameUserFile, type FileRecord } from "@/lib/upload"
+import { FileText, Image, Video, FileIcon, Download, Trash2, CheckSquare, Square, RotateCcw, Pencil } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -12,6 +12,8 @@ export default function LibraryView() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [deleting, setDeleting] = useState(false)
   const [reprocessingId, setReprocessingId] = useState<string | null>(null)
+  const [reprocessingFailed, setReprocessingFailed] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
 
   async function loadFiles() {
     try {
@@ -101,6 +103,11 @@ export default function LibraryView() {
     }
   }
 
+  const getStatusLabel = (status: string) => {
+    if (status === "uploaded") return "not done"
+    return status
+  }
+
   function toggleSelect(fileId: string) {
     setSelectedIds((prev) =>
       prev.includes(fileId) ? prev.filter((id) => id !== fileId) : [...prev, fileId]
@@ -143,6 +150,47 @@ export default function LibraryView() {
     }
   }
 
+  async function handleReprocessFailed() {
+    if (reprocessingFailed) return
+    const failedFiles = files.filter((file) => file.status === "failed")
+    if (failedFiles.length === 0) return
+
+    const confirmReprocess = window.confirm(
+      `Reprocess ${failedFiles.length} failed file(s)?`
+    )
+    if (!confirmReprocess) return
+
+    setReprocessingFailed(true)
+    try {
+      for (const file of failedFiles) {
+        await reprocessFile(file.id)
+      }
+      await loadFiles()
+    } catch (err) {
+      console.error("Failed to reprocess failed files:", err)
+      alert("Failed to reprocess one or more files. Please try again.")
+    } finally {
+      setReprocessingFailed(false)
+    }
+  }
+
+  async function handleRename(file: FileRecord) {
+    if (renamingId) return
+    const next = window.prompt("Enter new file name:", file.filename)?.trim()
+    if (!next || next === file.filename) return
+
+    setRenamingId(file.id)
+    try {
+      await renameUserFile(file.id, next)
+      await loadFiles()
+    } catch (err) {
+      console.error("Failed to rename file:", err)
+      alert("Failed to rename file. Please try again.")
+    } finally {
+      setRenamingId(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -167,6 +215,15 @@ export default function LibraryView() {
           {selectionMode ? `${selectedIds.length} selected` : `${files.length} files`}
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReprocessFailed}
+            disabled={reprocessingFailed || files.every((file) => file.status !== "failed")}
+          >
+            <RotateCcw className="w-4 h-4 mr-1" />
+            {reprocessingFailed ? "Reprocessing..." : "Reprocess Failed"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -251,13 +308,30 @@ export default function LibraryView() {
                     {file.filename}
                   </h3>
                   <Badge className={getStatusColor(file.status)} variant="outline">
-                    {file.status}
+                    {getStatusLabel(file.status)}
                   </Badge>
                 </div>
                 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{formatFileSize(file.size)}</span>
                   <span>{formatDate(file.createdAt)}</span>
+                </div>
+
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void handleRename(file)
+                    }}
+                    disabled={renamingId === file.id}
+                  >
+                    <Pencil className="w-4 h-4 mr-1" />
+                    {renamingId === file.id ? "Renaming..." : "Rename"}
+                  </Button>
                 </div>
 
                 {file.status === "failed" && (
